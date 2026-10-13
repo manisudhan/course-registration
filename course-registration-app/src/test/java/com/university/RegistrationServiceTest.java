@@ -31,6 +31,83 @@ class RegistrationServiceTest {
     }
 
     @Test
+    void shouldRejectRegistrationWhenCourseIsAtCapacity() {
+        Student student1 = new Student("S101", "Alice");
+        Student student2 = new Student("S102", "Bob");
+
+        // Course with capacity of 1
+        Course course = new Course(
+                "CS301",
+                "Data Structures",
+                4,
+                1,
+                true,
+                null
+        );
+
+        RegistrationService service = new RegistrationService();
+
+        // Fill the only available seat
+        assertTrue(service.register(student1, course));
+        assertEquals(1, course.getCurrentEnrollment());
+
+        // Attempt to register second student when full
+        boolean result = service.register(student2, course);
+
+        assertFalse(result);
+        assertFalse(student2.isRegistered("CS301"));
+        assertEquals(1, course.getCurrentEnrollment());
+        assertEquals(0, student2.getTotalCredits());
+    }
+
+    @Test
+    void shouldAllowRegistrationWhenOneSeatRemaining() {
+        Student student1 = new Student("S101", "Alice");
+        Student student2 = new Student("S102", "Bob");
+
+        // Course with capacity of 2
+        Course course = new Course(
+                "CS301",
+                "Data Structures",
+                4,
+                2,
+                true,
+                null
+        );
+
+        RegistrationService service = new RegistrationService();
+
+        // Enroll first student
+        assertTrue(service.register(student1, course));
+        assertEquals(1, course.getCurrentEnrollment());
+
+        // Enroll second student (filling the last remaining seat)
+        boolean result = service.register(student2, course);
+
+        assertTrue(result);
+        assertTrue(student2.isRegistered("CS301"));
+        assertEquals(2, course.getCurrentEnrollment());
+    }
+    @Test
+    void shouldHandleCaseInsensitiveRegistrationCheck() {
+        Student student = new Student("S101", "Anita");
+
+        Course course1 = new Course("CS301", "Data Structures", 4, 30, true, null);
+        Course course2 = new Course("cs301", "Data Structures Copy", 4, 30, true, null);
+
+        RegistrationService service = new RegistrationService();
+
+        // Register with uppercase course code
+        assertTrue(service.register(student, course1));
+
+        // Attempt duplicate registration with lowercase course code representation
+        boolean duplicateAttempt = service.register(student, course2);
+
+        assertFalse(duplicateAttempt);
+        assertEquals(4, student.getTotalCredits());
+    }
+
+    @Test
     void shouldRejectInactiveCourse() {
 
         Student student = new Student("S101", "Anita");
