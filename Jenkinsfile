@@ -1,41 +1,46 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven 3.10.0' // Matches your environment setup, or use default if preconfigured
-        jdk 'JDK 17'
-    }
-
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Build and Test') {
             steps {
-                // Runs clean and test from repository root across reactor
-                bat 'mvn clean test'
+                bat '''
+                    set JAVA_HOME=C:\\Program Files\\Java\\jdk-17
+                    set PATH=%JAVA_HOME%\\bin;%PATH%
+                    C:\\Users\\SNUC\\Downloads\\apache-maven-3.10.0-bin\\apache-maven-3.10.0\\bin\\mvn.cmd clean test
+                '''
             }
         }
 
         stage('Package') {
             steps {
-                // Packages the child module jar
-                bat 'mvn package -DskipTests'
+                bat '''
+                    set JAVA_HOME=C:\\Program Files\\Java\\jdk-17
+                    set PATH=%JAVA_HOME%\\bin;%PATH%
+                    C:\\Users\\SNUC\\Downloads\\apache-maven-3.10.0-bin\\apache-maven-3.10.0\\bin\\mvn.cmd package -DskipTests
+                '''
+            }
+        }
+
+        stage('Copy Artifacts to Workspace') {
+            steps {
+                bat '''
+                    if not exist "surefire-reports" mkdir surefire-reports
+                    copy /Y course-registration-app\\target\\surefire-reports\\TEST-*.xml surefire-reports\\
+                    
+                    if not exist "target" mkdir target
+                    copy /Y course-registration-app\\target\\*.jar target\\
+                '''
             }
         }
     }
 
     post {
         always {
-            // Publishes JUnit test reports from the child module surefire-reports path
-            junit 'course-registration-app/target/surefire-reports/TEST-*.xml'
+            junit 'surefire-reports/TEST-*.xml'
         }
         success {
-            // Archives the packaged artifact from the child module target path
-            archiveArtifacts artifacts: 'course-registration-app/target/*.jar', fingerprint: true
+            archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
         }
     }
 }
